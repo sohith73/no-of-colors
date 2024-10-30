@@ -89,8 +89,6 @@ def get_colors(image_path, resize_factor=0.5, min_percentage=0.1):
                 color_name_percentage[color_name] += percentage
             else:
                 color_name_percentage[color_name] = percentage
-        
-        # Convert to a list sorted by percentage for final display
         sorted_color_name_percentage = sorted(color_name_percentage.items(), key=lambda x: x[1], reverse=True)
         
         return sorted_color_name_percentage
