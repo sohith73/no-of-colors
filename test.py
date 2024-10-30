@@ -66,6 +66,7 @@ def get_colors(image_path, resize_factor=0.5, min_percentage=0.1):
     try:
         image = Image.open(image_path)
         image = image.convert('RGB')
+        
         if resize_factor < 1:
             image = image.resize(
                 (int(image.width * resize_factor), int(image.height * resize_factor))
@@ -74,14 +75,25 @@ def get_colors(image_path, resize_factor=0.5, min_percentage=0.1):
         colors = image.getdata()
         color_count = Counter(colors)
         total_colors = sum(color_count.values())
-
+        
         color_percentage = {color: (count / total_colors) * 100 for color, count in color_count.items()}
         filtered_colors = {color: perc for color, perc in color_percentage.items() if perc >= min_percentage}
         sorted_colors = sorted(filtered_colors.items(), key=lambda x: x[1], reverse=True)
-
-        color_name_percentage = [(get_color_name(color), percentage) for color, percentage in sorted_colors]
         
-        return color_name_percentage
+        # Dictionary to aggregate percentages for each unique color name
+        color_name_percentage = {}
+        
+        for color, percentage in sorted_colors:
+            color_name = get_color_name(color)
+            if color_name in color_name_percentage:
+                color_name_percentage[color_name] += percentage
+            else:
+                color_name_percentage[color_name] = percentage
+        
+        # Convert to a list sorted by percentage for final display
+        sorted_color_name_percentage = sorted(color_name_percentage.items(), key=lambda x: x[1], reverse=True)
+        
+        return sorted_color_name_percentage
     
     except Exception as e:
         print(f"Error: {e}")
