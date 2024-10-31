@@ -1,6 +1,10 @@
+import cairosvg  # not working 
 from PIL import Image
 from collections import Counter
 import webcolors
+import io
+from svglib.svglib import svg2rlg
+from reportlab.graphics import renderPM
 
 '''
 problem statement 
@@ -42,6 +46,14 @@ def closest_color(requested_color):
         min_colors[(rd + gd + bd)] = name
     return min_colors[min(min_colors.keys())]
 
+def convert_svg_to_png(image_path):
+    # Convert SVG to PNG in memory
+    drawing = svg2rlg(image_path)
+    png_data = io.BytesIO()
+    renderPM.drawToFile(drawing, png_data, fmt="PNG")
+    png_data.seek(0)
+    return Image.open(png_data).convert("RGB")
+
 '''
 half done 
 now we need its names of them we can use css for thsi i think if found we will
@@ -64,8 +76,10 @@ and try sorting too.
 
 def get_colors(image_path, resize_factor=0.5, min_percentage=0.1):
     try:
-        image = Image.open(image_path)
-        image = image.convert('RGB')
+        if image_path.lower().endswith('.svg'):
+            image = convert_svg_to_png(image_path)
+        else:
+            image = Image.open(image_path).convert('RGB')
         
         if resize_factor < 1:
             image = image.resize(
