@@ -1,1 +1,0 @@
- min_percentage=0.1

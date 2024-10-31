@@ -1,10 +1,6 @@
-# import cairosvg  # not working 
 from PIL import Image
 from collections import Counter
 import webcolors
-import io
-from svglib.svglib import svg2rlg
-from reportlab.graphics import renderPM
 
 '''
 problem statement 
@@ -28,7 +24,6 @@ problem statement
           - we can count how many times it occurs(lets leave it for now)
           - we can sort them and display the greatest-
           - and i am ignoring small colors with no conurbation 
-
 '''
 '''
 this function shoud Tries to match an RGB color (which is made up of red, green, and blue values)
@@ -43,16 +38,8 @@ def closest_color(requested_color):
         rd = (r_c - requested_color[0]) ** 2
         gd = (g_c - requested_color[1]) ** 2
         bd = (b_c - requested_color[2]) ** 2
-        min_colors[(rd + gd + bd)] = name
+        min_colors[(rd + gd + bd)] = (name, key)  # Add hex code
     return min_colors[min(min_colors.keys())]
-
-def convert_svg_to_png(image_path):
-    # Convert SVG to PNG in memory
-    drawing = svg2rlg(image_path)
-    png_data = io.BytesIO()
-    renderPM.drawToFile(drawing, png_data, fmt="PNG")
-    png_data.seek(0)
-    return Image.open(png_data).convert("RGB")
 
 '''
 half done 
@@ -62,10 +49,12 @@ give ist mane else just normal name
 
 def get_color_name(rgb_color):
     try:
-        return webcolors.rgb_to_name(rgb_color, spec='css3')
+        color_name = webcolors.rgb_to_name(rgb_color, spec='css3')
+        color_hex = webcolors.rgb_to_hex(rgb_color)
+        return color_name, color_hex
     except ValueError:
         return closest_color(rgb_color)
-    
+
 '''
 main task starts now we need
 Opens an image and tells us what colors are in it, along with their percentages,
@@ -76,41 +65,40 @@ and try sorting too.
 
 def get_colors(image_path, resize_factor=0.5, min_percentage=0.1):
     try:
-        if image_path.lower().endswith('.svg'):
-            image = convert_svg_to_png(image_path)
-        else:
-            image = Image.open(image_path).convert('RGB')
-        
+        image = Image.open(image_path)
+        image = image.convert('RGB')
+
         if resize_factor < 1:
             image = image.resize(
                 (int(image.width * resize_factor), int(image.height * resize_factor))
             )
-        
+
         colors = image.getdata()
         color_count = Counter(colors)
         total_colors = sum(color_count.values())
-        
+
         color_percentage = {color: (count / total_colors) * 100 for color, count in color_count.items()}
         filtered_colors = {color: perc for color, perc in color_percentage.items() if perc >= min_percentage}
         sorted_colors = sorted(filtered_colors.items(), key=lambda x: x[1], reverse=True)
-        
+
         # Dictionary to aggregate percentages for each unique color name
         color_name_percentage = {}
-        
+
         for color, percentage in sorted_colors:
-            color_name = get_color_name(color)
+            color_name, color_hex = get_color_name(color)
             if color_name in color_name_percentage:
-                color_name_percentage[color_name] += percentage
+                color_name_percentage[color_name]["percentage"] += percentage
             else:
-                color_name_percentage[color_name] = percentage
-        sorted_color_name_percentage = sorted(color_name_percentage.items(), key=lambda x: x[1], reverse=True)
-        
+                color_name_percentage[color_name] = {"hex": color_hex, "percentage": percentage}
+
+        # Sorting by usage percentage
+        sorted_color_name_percentage = sorted(color_name_percentage.items(), key=lambda x: x[1]["percentage"], reverse=True)
+
         return sorted_color_name_percentage
-    
+
     except Exception as e:
         print(f"Error: {e}")
         return []
-
 # Main function to get the image path and display the color analysis
 if __name__ == "__main__":
     image_path = input("Please enter the path to your logo/image file: ")
@@ -118,7 +106,7 @@ if __name__ == "__main__":
     colors = get_colors(image_path, resize_factor=0.5, min_percentage=0.1)
     if colors:
         print("\nColors in the image (sorted by usage percentage):")
-        for color_name, percentage in colors:
-            print(f"Color: {color_name.capitalize()}, Percentage: {percentage:.2f}%")
+        for color_name, color_data in colors:
+            print(f"Color: {color_name.capitalize()}, Hex: {color_data['hex']}, Percentage: {color_data['percentage']:.2f}%")
     else:
         print("No colors found or image could not be processed.")
